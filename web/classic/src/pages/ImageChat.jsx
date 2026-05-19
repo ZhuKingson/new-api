@@ -92,7 +92,13 @@ export default function ImageChat() {
   };
 
   return (
-    <div style={{ maxWidth: 1080, margin: '0 auto', padding: 16 }}>
+    <div
+      style={{
+        maxWidth: 1080,
+        margin: '64px auto 0',
+        padding: '0 16px 16px',
+      }}
+    >
       <Card title={t('文生图（GPT-5.5 + GPT-Image-2）')}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
           {PROMPT_TEMPLATES.map((template) => (
