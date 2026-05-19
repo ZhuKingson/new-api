@@ -16,6 +16,14 @@ docker volume inspect new-api_pg_data >/dev/null 2>&1 || docker volume create ne
 echo "[4/5] Starting PostgreSQL and Redis with reusable data volume..."
 docker compose -f docker-compose.dev.yml up -d postgres redis
 
+if [ ! -f web/default/dist/index.html ]; then
+  echo "ERROR: missing frontend artifact web/default/dist/index.html" >&2
+  echo "This script does not build frontend artifacts on server." >&2
+  echo "Please sync repository artifacts (web/default/dist) from git first." >&2
+  echo "If you intentionally changed frontend source, build dist locally before deployment." >&2
+  exit 1
+fi
+
 echo "[5/5] Building backend image with prebuilt frontend artifacts and starting service..."
 if ! docker build -f Dockerfile.dev -t new-api-dev-full:local .; then
   echo "Build failed with BuildKit. Retrying once with classic builder (DOCKER_BUILDKIT=0)..."
@@ -26,6 +34,6 @@ docker compose -f docker-compose.dev.yml up -d new-api
 
 echo
 echo "Done. Backend is running in dev mode with reused DB volume (new-api_pg_data)."
-echo "Frontend assets source: web/default/dist (prebuilt locally and committed)."
+echo "Frontend assets source: web/default/dist (prebuilt and synced from repository)."
 echo "Check status: docker compose -f docker-compose.dev.yml ps"
 echo "View logs:    docker compose -f docker-compose.dev.yml logs -f new-api"
