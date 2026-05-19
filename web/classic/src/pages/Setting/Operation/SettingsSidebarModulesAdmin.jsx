@@ -44,6 +44,7 @@ export default function SettingsSidebarModulesAdmin(props) {
       enabled: true,
       playground: true,
       chat: true,
+      image_chat: true,
     },
     console: {
       enabled: true,
@@ -105,6 +106,7 @@ export default function SettingsSidebarModulesAdmin(props) {
         enabled: true,
         playground: true,
         chat: true,
+      image_chat: true,
       },
       console: {
         enabled: true,
@@ -217,6 +219,7 @@ export default function SettingsSidebarModulesAdmin(props) {
           description: t('AI模型测试环境'),
         },
         { key: 'chat', title: t('聊天'), description: t('聊天会话管理') },
+        { key: 'image_chat', title: t('文生图'), description: t('图像生成聊天') },
       ],
     },
     {

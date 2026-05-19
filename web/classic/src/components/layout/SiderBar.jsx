@@ -48,6 +48,7 @@ const routerMap = {
   models: '/console/models',
   deployment: '/console/deployment',
   playground: '/console/playground',
+  image_chat: '/console/image-chat',
   personal: '/console/personal',
 };
 
@@ -211,6 +212,11 @@ const SiderBar = ({ onNavigate = () => {} }) => {
         text: t('聊天'),
         itemKey: 'chat',
         items: chatItems,
+      },
+      {
+        text: t('文生图'),
+        itemKey: 'image_chat',
+        to: '/image-chat',
       },
     ];
 
