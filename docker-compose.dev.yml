@@ -18,6 +18,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        BUILD_CLASSIC: "false"
+        FRONTEND_NODE_OPTIONS: "--max-old-space-size=768"
     image: new-api-dev-full:local
     container_name: new-api-dev
     restart: unless-stopped
