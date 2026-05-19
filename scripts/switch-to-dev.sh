@@ -17,7 +17,13 @@ echo "[4/5] Starting PostgreSQL and Redis with reusable data volume..."
 docker compose -f docker-compose.dev.yml up -d postgres redis
 
 echo "[5/5] Rebuilding and starting backend from latest local code..."
-docker compose -f docker-compose.dev.yml up -d --build new-api
+# Prefer BuildKit, but some Docker/Buildx versions may fail with
+# "no active session ... context deadline exceeded" when exporting image.
+# In that case fallback to classic builder and retry once automatically.
+if ! docker compose -f docker-compose.dev.yml up -d --build new-api; then
+  echo "Build failed with BuildKit. Retrying once with classic builder (DOCKER_BUILDKIT=0)..."
+  COMPOSE_DOCKER_CLI_BUILD=0 DOCKER_BUILDKIT=0 docker compose -f docker-compose.dev.yml up -d --build new-api
+fi
 
 echo
 echo "Done. Backend is running in dev mode with reused DB volume (new-api_pg_data)."
