@@ -1,5 +1,5 @@
-# Backend-only build for frontend development
-# Skips frontend build, uses a placeholder for //go:embed web/dist
+# Backend build using prebuilt frontend artifacts from repository
+# Reads web/default/dist and web/classic/dist directly (no frontend toolchain build)
 
 FROM golang:1.26.1-alpine AS builder
 
@@ -16,9 +16,15 @@ RUN go mod download
 
 COPY . .
 
-RUN mkdir -p web/default/dist web/classic/dist && \
-    echo '<!doctype html><html><head><title>dev</title></head><body>use frontend dev server</body></html>' > web/default/dist/index.html && \
-    echo '<!doctype html><html><head><title>dev</title></head><body>use frontend dev server</body></html>' > web/classic/dist/index.html
+RUN if [ ! -f web/default/dist/index.html ]; then \
+      echo "ERROR: missing frontend artifact web/default/dist/index.html" >&2; \
+      echo "Please build frontend locally and commit/push web/default/dist first." >&2; \
+      exit 1; \
+    fi && \
+    if [ ! -f web/classic/dist/index.html ]; then \
+      mkdir -p web/classic/dist && \
+      echo '<!doctype html><html><head><title>classic disabled</title></head><body>classic frontend artifact missing</body></html>' > web/classic/dist/index.html; \
+    fi
 
 RUN go build -ldflags "-s -w -X 'github.com/QuantumNous/new-api/common.Version=$(cat VERSION)'" -o new-api
 
