@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 const PROMPT_TEMPLATES = [
   {
     key: 'product-photo',
-    label: 'Product Photo',
+    label: '产品摄影',
     prompt: `生成一张真实感很强的日常家居用品产品摄影图。
 
 产品设定：
@@ -24,9 +24,33 @@ const PROMPT_TEMPLATES = [
 - 不要出现文字、Logo、水印、海报排版或 UI 元素
 - 横向画幅，适合后续作为电商网站或品牌官网的主视觉素材`,
   },
-  { key: 'portrait', label: 'Portrait', prompt: '请生成一张自然光人像照片，肤色真实，保留皮肤纹理，浅景深，背景干净，不要文字和水印。' },
-  { key: 'food', label: 'Food', prompt: '请生成一张高级餐厅风格的食物摄影图，强调食材细节与蒸汽氛围，柔和侧光，写实风格，不要文字和logo。' },
+  {
+    key: 'portrait',
+    label: '人物写真',
+    prompt:
+      '请生成一张自然光人像照片，肤色真实，保留皮肤纹理，浅景深，背景干净，不要文字和水印。',
+  },
+  {
+    key: 'food',
+    label: '美食摄影',
+    prompt:
+      '请生成一张高级餐厅风格的食物摄影图，强调食材细节与蒸汽氛围，柔和侧光，写实风格，不要文字和 logo。',
+  },
 ]
+
+type ImageGenerationOutputItem = {
+  type?: string
+  result?: string
+}
+
+type ImageChatRelayResponse = {
+  success?: boolean
+  message?: string
+  output?: ImageGenerationOutputItem[]
+  data?: {
+    output?: ImageGenerationOutputItem[]
+  }
+}
 
 export function ImageChatPage() {
   const { t } = useTranslation()
@@ -36,34 +60,100 @@ export function ImageChatPage() {
 
   const runGenerate = async () => {
     if (!prompt.trim()) {
-      toast.error(t('Please enter a prompt.'))
+      toast.error(t('请输入图像描述。'))
       return
     }
+
     setIsGenerating(true)
+
+    const controller = new AbortController()
+    const timeoutId = window.setTimeout(() => controller.abort(), 180000)
+
     try {
       const response = await fetch('/api/user/image-chat/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt }),
+        signal: controller.signal,
       })
-      const data = (await response.json()) as { output?: Array<{ type?: string; result?: string }>; message?: string }
+
+      const data = (await response.json()) as ImageChatRelayResponse
       if (!response.ok) {
-        toast.error(data.message || t('Image generation failed.'))
+        toast.error(data.message || t('图像生成失败。'))
         return
       }
-      const imageCall = data.output?.find((item) => item.type === 'image_generation_call' && item.result)
+
+      if (data.success === false) {
+        toast.error(data.message || t('图像生成失败。'))
+        return
+      }
+
+      const output = data.data?.output || data.output || []
+      const imageCall = output.find((item) => item.type === 'image_generation_call' && item.result)
       if (!imageCall?.result) {
-        toast.error(t('No image returned from model response.'))
+        toast.error(data.message || t('模型没有返回图像结果。'))
         return
       }
+
       setImageBase64(imageCall.result)
-      toast.success(t('Image generated successfully.'))
-    } catch {
-      toast.error(t('Image generation failed.'))
+      toast.success(t('图像生成成功。'))
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        toast.error(t('生成超时，请稍后重试。'))
+      } else {
+        toast.error(t('图像生成失败。'))
+      }
     } finally {
+      window.clearTimeout(timeoutId)
       setIsGenerating(false)
     }
   }
 
-  return <div className='mx-auto flex w-full max-w-6xl flex-col gap-4 p-4'><Card><CardHeader><CardTitle>{t('Image Chat (GPT-5.5 + GPT-Image-2)')}</CardTitle></CardHeader><CardContent className='space-y-4'><div className='flex flex-wrap gap-2'>{PROMPT_TEMPLATES.map((template)=><Button key={template.key} variant='outline' onClick={()=>setPrompt(template.prompt)}>{template.label}</Button>)}</div><Textarea value={prompt} onChange={(e)=>setPrompt(e.target.value)} rows={12} placeholder={t('Describe the image you want to generate...')} /><div className='flex gap-2'><Button onClick={runGenerate} disabled={isGenerating}>{isGenerating ? t('Generating...') : t('Generate Image')}</Button></div></CardContent></Card>{imageBase64 ? <Card><CardHeader><CardTitle>{t('Generated Result')}</CardTitle></CardHeader><CardContent><img src={`data:image/png;base64,${imageBase64}`} alt={t('Generated image')} className='w-full rounded-md border' /></CardContent></Card> : null}</div>
+  return (
+    <div className='mx-auto w-full max-w-6xl p-4'>
+      <Card>
+        <CardHeader className='pb-4'>
+          <CardTitle>{t('文生图（GPT-5.5 + GPT-Image-2）')}</CardTitle>
+        </CardHeader>
+        <CardContent className='space-y-4'>
+          <div className='flex flex-wrap gap-2'>
+            {PROMPT_TEMPLATES.map((template) => (
+              <Button key={template.key} variant='outline' onClick={() => setPrompt(template.prompt)}>
+                {template.label}
+              </Button>
+            ))}
+          </div>
+
+          <Textarea
+            value={prompt}
+            onChange={(event) => setPrompt(event.target.value)}
+            rows={10}
+            className='min-h-[220px] resize-y leading-7'
+            placeholder={t('请输入你想生成的图像描述，例如：场景、风格、光线、构图。')}
+          />
+
+          <div className='flex flex-wrap items-center gap-3'>
+            <Button onClick={runGenerate} disabled={isGenerating} className='min-w-28'>
+              {isGenerating ? t('生成中...') : t('生成图片')}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {imageBase64 ? (
+        <Card className='mt-4'>
+          <CardHeader>
+            <CardTitle>{t('生成结果')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <img
+              src={`data:image/png;base64,${imageBase64}`}
+              alt={t('生成图片结果')}
+              className='w-full rounded-md border object-contain'
+            />
+          </CardContent>
+        </Card>
+      ) : null}
+    </div>
+  )
 }
