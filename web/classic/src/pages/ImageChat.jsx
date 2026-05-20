@@ -113,12 +113,13 @@ export default function ImageChat() {
     }
   };
 
-  const saveToHistory = (newPrompt, newImageBase64) => {
+  const saveToHistory = (newPrompt, newImageBase64, durationMs) => {
     const item = {
       id: `${Date.now()}`,
       prompt: newPrompt,
       imageBase64: newImageBase64,
       createdAt: new Date().toISOString(),
+      durationMs,
     };
 
     const deduplicatedItems = historyItems.filter(
@@ -147,6 +148,7 @@ export default function ImageChat() {
     }
 
     setIsGenerating(true);
+    const generateStartAt = Date.now();
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 180000);
 
@@ -169,7 +171,7 @@ export default function ImageChat() {
       }
 
       setImageBase64(imageCall.result);
-      saveToHistory(prompt, imageCall.result);
+      saveToHistory(prompt, imageCall.result, Date.now() - generateStartAt);
       showSuccess(t('图像生成成功。'));
     } catch (error) {
       if (error?.name === 'CanceledError' || error?.name === 'AbortError') {
@@ -202,7 +204,7 @@ export default function ImageChat() {
         <TextArea
           value={prompt}
           onChange={setPrompt}
-          rows={10}
+          rows={14}
           placeholder={t('请输入你想生成的图像描述，例如：场景、风格、光线、构图。')}
         />
         <div style={{ marginTop: 12 }}>
@@ -231,6 +233,9 @@ export default function ImageChat() {
             {historyItems.map((item) => (
               <div key={item.id} style={{ border: '1px solid var(--semi-color-border)', borderRadius: 8, padding: 12 }}>
                 <div style={{ marginBottom: 8, color: 'var(--semi-color-text-2)' }}>{item.prompt}</div>
+                <div style={{ marginBottom: 8, color: 'var(--semi-color-text-2)' }}>
+                  {t('耗时：{{seconds}} 秒', { seconds: ((item.durationMs || 0) / 1000).toFixed(2) })}
+                </div>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                   <Button theme='light' onClick={() => setPrompt(item.prompt)}>
                     {t('使用此提示词')}
