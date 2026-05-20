@@ -35,5 +35,6 @@ docker compose -f docker-compose.dev.yml up -d new-api
 echo
 echo "Done. Backend is running in dev mode with reused DB volume (new-api_pg_data)."
 echo "Frontend assets source: web/default/dist (prebuilt and synced from repository)."
+echo "Docker host alias inside container: docker-host.internal"
 echo "Check status: docker compose -f docker-compose.dev.yml ps"
 echo "View logs:    docker compose -f docker-compose.dev.yml logs -f new-api"
